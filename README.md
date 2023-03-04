@@ -1,3 +1,4 @@
+# phenoflow
 <img src="logo.png" alt="phenoflow" width="150">
 
 Portable, workflow-based phenotype definitions.
