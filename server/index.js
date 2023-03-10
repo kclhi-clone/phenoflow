@@ -9,7 +9,7 @@ const NAME = 'Admin'
 const EMAIL = 'obed.ngigi@kcl.ac.uk'
 
 const HELLO_WORLD_CWL = "Y3dsVmVyc2lvbjogdjEuMgoKIyBXaGF0IHR5cGUgb2YgQ1dMIHByb2Nlc3Mgd2UgaGF2ZSBpbiB0aGlzIGRvY3VtZW50LgpjbGFzczogQ29tbWFuZExpbmVUb29sCiMgVGhpcyBDb21tYW5kTGluZVRvb2wgZXhlY3V0ZXMgdGhlIGxpbnV4ICJlY2hvIiBjb21tYW5kLWxpbmUgdG9vbC4KYmFzZUNvbW1hbmQ6IGVjaG8KCiMgVGhlIGlucHV0cyBmb3IgdGhpcyBwcm9jZXNzLgppbnB1dHM6CiAgbWVzc2FnZToKICAgIHR5cGU6IHN0cmluZwogICAgIyBBIGRlZmF1bHQgdmFsdWUgdGhhdCBjYW4gYmUgb3ZlcnJpZGRlbiwgZS5nLiAtLW1lc3NhZ2UgIkhvbGEgbXVuZG8iCiAgICBkZWZhdWx0OiAiSGVsbG8gV29ybGQiCiAgICAjIEJpbmQgdGhpcyBtZXNzYWdlIHZhbHVlIGFzIGFuIGFyZ3VtZW50IHRvICJlY2hvIi4KICAgIGlucHV0QmluZGluZzoKICAgICAgcG9zaXRpb246IDEKb3V0cHV0czogW10="
-let AUTH_TOKEN = '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'
+let AUTH_TOKEN = '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'
 
 // Octokit.js
 // https://github.com/octokit/core.js#readme
@@ -67,6 +67,8 @@ app.get("/:name", async(request, response) => {
   }
 });
 
+
+
 /**
 * Create
 */
@@ -82,14 +84,16 @@ async function uploadPhenotype(phenotype) {
   const name = String(phenotype.name).toLowerCase()
   
   try {
-    await octokit.request('PATCH /orgs/{org}/repos', {
+    await octokit.request('POST /orgs/{org}/repos', {
+      
       org: OWNER,
       name: name,
       description: `This is the ${name} phenotype`,
-      'private': true,
+      'private': false,
       has_issues: true,
       has_projects: true,
       has_wiki: true,
+      auto_init: true,
       headers: {
         'X-GitHub-Api-Version': '2022-11-28'
       }
@@ -105,14 +109,12 @@ app.put("/initialise", async (request, response) => {
   try {
     const promises = phenotypes.map(async (phenotype) => {
       await uploadPhenotype(phenotype);
-    });
-
-    /** phenotypes.forEach(phenotype => {
-      await uploadPhenotype(phenotype);
-    }); */
+      //await populatePhenotype(phenotype);
+    });  
 
     await Promise.all(promises);
-    response.status(200);
+    console.log('data', data)
+    response.status(200).send(data);
   } catch (error) {
     console.log(error);
     response.status(500)
