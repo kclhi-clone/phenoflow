@@ -1,6 +1,8 @@
 const express = require('express')
 const phenotypes = require('./phenotypes-reduced.json')
 const app = express()
+
+// Necessary to parse
 app.use(express.json())
 
 const PORT = 3000
@@ -94,37 +96,39 @@ app.get("/:name/description", async(request, response) => {
       }
     }, { accept: 'application/vnd.github.raw' });
 
-    const inputBuffer = Buffer.from(res.data.content, 'base64');
-    var bufferArray = [];
-    for(const value of inputBuffer.values()) {
-      stringValue = value.toString(16)
-      if (stringValue.length == 1) {
-        stringValue = '0' + stringValue
+    const readmeBuffer = Buffer.from(res.data.content, 'base64');
+    var readmeArray = [];
+    for(const value of readmeBuffer.values()) {
+      hexValue = value.toString(16)
+      if (hexValue.length == 1) {
+        hexValue = `0${hexValue}`
       }
-      bufferArray.push(stringValue)
+      readmeArray.push(hexValue)
     }
 
     var startIndex;
-    for(var index = 1; index < bufferArray.length; index++) {
-      if (bufferArray[index - 1] == '2d' && bufferArray[index] == '20') {
+    // Finds start index of the phenotype description
+    // within bufferArrary
+    for(var index = 1; index < readmeArray.length; index++) {
+      if (readmeArray[index - 1] == '2d' && readmeArray[index] == '20') {
         startIndex = index + 1;
         break;
       }
     }
 
     var endIndex;
-    for(var index = 0; index < bufferArray.length; index++) {
-      if (bufferArray[index] == '0a' && bufferArray[index + 1] == '0a'
-      && bufferArray[index + 2] == '23' && bufferArray[index + 3] == '23') {
+    // Finds end index of the phenotype description
+    // within bufferArrary
+    for(var index = 0; index < readmeArray.length; index++) {
+      if (readmeArray[index] == '0a' && readmeArray[index + 1] == '0a'
+      && readmeArray[index + 2] == '23' && readmeArray[index + 3] == '23') {
         endIndex = index;
         break;
       }
     }
 
-    difference = endIndex - startIndex
-
-    bufferArray = bufferArray.slice(startIndex, endIndex)
-    outputBuffer = Buffer.from(bufferArray.flat().join(''), 'hex')
+    descriptionArray = readmeArray.slice(startIndex, endIndex)
+    outputBuffer = Buffer.from(readmeArray.flat().join(''), 'hex')
 
     return response.status(200).send(outputBuffer.toString())
   } catch (error) {
@@ -244,7 +248,6 @@ app.put("/update/:name/description/:step", async(request, response) => {
 app.put("/update/:name/description", async(request, response) => {
   const name = request.params.name.toLowerCase()
   const description = request.body.description
-  //console.log('description', request.body.description)
 
   try {
     const res = await octokit.request('GET /repos/{owner}/{repo}/readme', {
@@ -261,45 +264,41 @@ app.put("/update/:name/description", async(request, response) => {
       descriptionArray.push(value.toString(16))
     }
 
-    const inputBuffer = Buffer.from(res.data.content, 'base64');
-    var bufferArray = [];
-    for(const value of inputBuffer.values()) {
-      stringValue = value.toString(16)
-      if (stringValue.length == 1) {
-        stringValue = '0' + stringValue
+    const readmeBuffer = Buffer.from(res.data.content, 'base64');
+    var readmeArray = [];
+    for(const value of readmeBuffer.values()) {
+      hexValue = value.toString(16)
+      if (hexValue.length == 1) {
+        hexValue = '0' + hexValue
       }
-      bufferArray.push(stringValue)
+      readmeArray.push(hexValue)
     }
-    //console.log('InputBuffer', inputBuffer)
-    //console.log('BufferArray', bufferArray)
 
     var startIndex;
-    for(var index = 1; index < bufferArray.length; index++) {
-      if (bufferArray[index - 1] == '2d' && bufferArray[index] == '20') {
+    // Finds start index of the phenotype description
+    // within bufferArrary
+    for(var index = 1; index < readmeArray.length; index++) {
+      if (readmeArray[index - 1] == '2d' && readmeArray[index] == '20') {
         startIndex = index + 1;
         break;
       }
     }
 
     var endIndex;
-    for(var index = 0; index < bufferArray.length; index++) {
-      if (bufferArray[index] == '0a' && bufferArray[index + 1] == '0a'
-      && bufferArray[index + 2] == '23' && bufferArray[index + 3] == '23') {
+    // Finds end index of the phenotype description
+    // within bufferArrary
+    for(var index = 0; index < readmeArray.length; index++) {
+      if (readmeArray[index] == '0a' && readmeArray[index + 1] == '0a'
+      && readmeArray[index + 2] == '23' && readmeArray[index + 3] == '23') {
         endIndex = index;
         break;
       }
     }
 
     difference = endIndex - startIndex
-    //console.log('startIndex', startIndex)
-    //console.log('endIndex', endIndex)
-    //console.log('difference', difference)
 
-    bufferArray.splice(startIndex, difference, descriptionArray)
-    //console.log('Spliced buffer', bufferArray.flat())
-    outputBuffer = Buffer.from(bufferArray.flat().join(''), 'hex')
-
-    //console.log('Output buffer', outputBuffer.toString('base64'))
+    readmeArray.splice(startIndex, difference, descriptionArray)
+    outputBuffer = Buffer.from(readmeArray.flat().join(''), 'hex')
 
     await octokit.request('PUT /repos/{owner}/{repo}/contents/{path}', {
       owner: OWNER,
